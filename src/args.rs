@@ -4,7 +4,7 @@ use solana_remote_wallet::remote_wallet::maybe_wallet_manager;
 use solana_sdk::{pubkey::Pubkey, signature::Signer};
 use std::error::Error;
 
-pub struct DistributeArgs<K> {
+pub struct AuctionArgs<K> {
     pub bids_csv: String,
     pub transactions_csv: String,
     pub dollars_per_sol: f64,
@@ -13,7 +13,7 @@ pub struct DistributeArgs<K> {
     pub fee_payer: Option<K>,
 }
 
-pub struct DistributeStakeArgs<P, K> {
+pub struct StakeAccountsArgs<P, K> {
     pub allocations_csv: String,
     pub transactions_csv: String,
     pub dry_run: bool,
@@ -29,8 +29,8 @@ pub struct BalancesArgs {
 }
 
 pub enum Command<P, K> {
-    Distribute(DistributeArgs<K>),
-    DistributeStake(DistributeStakeArgs<P, K>),
+    Auction(AuctionArgs<K>),
+    StakeAccounts(StakeAccountsArgs<P, K>),
     Balances(BalancesArgs),
 }
 
@@ -44,10 +44,10 @@ pub fn resolve_command(
     command: Command<String, String>,
 ) -> Result<Command<Pubkey, Box<dyn Signer>>, Box<dyn Error>> {
     match command {
-        Command::Distribute(args) => {
+        Command::Auction(args) => {
             let mut wallet_manager = maybe_wallet_manager()?;
             let matches = ArgMatches::default();
-            let resolved_args = DistributeArgs {
+            let resolved_args = AuctionArgs {
                 bids_csv: args.bids_csv,
                 transactions_csv: args.transactions_csv,
                 dollars_per_sol: args.dollars_per_sol,
@@ -59,12 +59,12 @@ pub fn resolve_command(
                     signer_from_path(&matches, &key_url, "fee-payer", &mut wallet_manager).unwrap()
                 }),
             };
-            Ok(Command::Distribute(resolved_args))
+            Ok(Command::Auction(resolved_args))
         }
-        Command::DistributeStake(args) => {
+        Command::StakeAccounts(args) => {
             let mut wallet_manager = maybe_wallet_manager()?;
             let matches = ArgMatches::default();
-            let resolved_args = DistributeStakeArgs {
+            let resolved_args = StakeAccountsArgs {
                 allocations_csv: args.allocations_csv,
                 transactions_csv: args.transactions_csv,
                 dry_run: args.dry_run,
@@ -92,7 +92,7 @@ pub fn resolve_command(
                     signer_from_path(&matches, &key_url, "fee-payer", &mut wallet_manager).unwrap()
                 }),
             };
-            Ok(Command::DistributeStake(resolved_args))
+            Ok(Command::StakeAccounts(resolved_args))
         }
         Command::Balances(args) => Ok(Command::Balances(args)),
     }

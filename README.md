@@ -1,11 +1,16 @@
-# Distribute Solana tokens
+# Reconcile Solana token distributions
 
-A user may want to make payments to multiple accounts over multiple iterations.
-The user will have a spreadsheet listing public keys and token amounts, and
-some process for transferring tokens to them, and ensuring that no more than the
-expected amount are sent. The command-line tool here automates that process.
+The terms of stake and token distributions are sometimes managed off-chain.
+For example, a third-party may host a dutch auction and then provide the
+tokenholder with a spreadsheet detailing who bought what. The automation
+here, a command-line tool called `solana-tokens`, reconciles spreadsheet
+data with Solana's on-chain state. It caches records of each on-chain
+transaction, so that the spreadsheet can be updated over time. You can
+then run `solana-tokens` with the `--dry-run` option to see what distributions
+have not yet been performed. If you re-run the commend without the `--dry-run`
+option, those same distributions are executed.
 
-## Distribute tokens
+## Reconcile auction results
 
 Send tokens to the recipients in `<BIDS_CSV>`.
 
@@ -17,7 +22,7 @@ primary_address,bid_amount_dollars
 ```
 
 ```bash
-solana-tokens distribute --from <KEYPAIR> --dollars-per-sol <NUMBER> --bids-csv <BIDS_CSV> <TRANSACTION_LOG> --fee-payer <KEYPAIR>
+solana-reconcile auction --from <KEYPAIR> --dollars-per-sol <NUMBER> --bids-csv <BIDS_CSV> <TRANSACTION_LOG> --fee-payer <KEYPAIR>
 ```
 
 Example transaction log before:
@@ -28,10 +33,10 @@ recipient,amount,signature
 ```
 
 Send tokens to the recipients in `<BIDS_CSV>` if the distribution is
-not already recordered in the transaction log.
+not already recorded in the transaction log.
 
 ```bash
-solana-tokens distribute --from <KEYPAIR> --dollars-per-sol <NUMBER> --bids-csv <BIDS_CSV> <TRANSACTION_LOG> --fee-payer <KEYPAIR>
+solana-reconcile auction --from <KEYPAIR> --dollars-per-sol <NUMBER> --bids-csv <BIDS_CSV> <TRANSACTION_LOG> --fee-payer <KEYPAIR>
 ```
 
 Example output:
@@ -60,7 +65,7 @@ List the differences between a list of expected distributions and the record of 
 transactions have already been sent.
 
 ```bash
-solana-tokens distribute --dollars-per-sol <NUMBER> --dry-run --bids-csv <BIDS_CSV> <TRANSACTION_LOG>
+solana-reconcile auction --dollars-per-sol <NUMBER> --dry-run --bids-csv <BIDS_CSV> <TRANSACTION_LOG>
 ```
 
 Example bids.csv:

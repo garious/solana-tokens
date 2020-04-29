@@ -1,4 +1,4 @@
-use crate::args::{Args, BalancesArgs, Command, DistributeArgs, DistributeStakeArgs};
+use crate::args::{Args, AuctionArgs, BalancesArgs, Command, StakeAccountsArgs};
 use clap::{value_t, value_t_or_exit, App, Arg, ArgMatches, SubCommand};
 use solana_clap_utils::input_validators::{is_valid_pubkey, is_valid_signer};
 use solana_cli_config::CONFIG_FILE;
@@ -11,7 +11,7 @@ where
     T: Into<OsString> + Clone,
 {
     let default_config_file = CONFIG_FILE.as_ref().unwrap();
-    App::new("solana-tokens")
+    App::new("solana-reconcile")
         .about("about")
         .version("version")
         .arg(
@@ -31,8 +31,8 @@ where
                 .help("RPC entrypoint address. i.e. http://devnet.solana.com"),
         )
         .subcommand(
-            SubCommand::with_name("distribute")
-                .about("Distribute tokens")
+            SubCommand::with_name("auction")
+                .about("Reconcile auction results")
                 .arg(
                     Arg::with_name("transactions_csv")
                         .required(true)
@@ -80,8 +80,8 @@ where
                 ),
         )
         .subcommand(
-            SubCommand::with_name("distribute-stake")
-                .about("Distribute stake accounts")
+            SubCommand::with_name("stake-accounts")
+                .about("Reconcile stake accounts")
                 .arg(
                     Arg::with_name("transactions_csv")
                         .required(true)
@@ -160,8 +160,8 @@ where
         .get_matches_from(args)
 }
 
-fn parse_distribute_args(matches: &ArgMatches<'_>) -> DistributeArgs<String> {
-    DistributeArgs {
+fn parse_auction_args(matches: &ArgMatches<'_>) -> AuctionArgs<String> {
+    AuctionArgs {
         bids_csv: value_t_or_exit!(matches, "bids_csv", String),
         transactions_csv: value_t_or_exit!(matches, "transactions_csv", String),
         dollars_per_sol: value_t_or_exit!(matches, "dollars_per_sol", f64),
@@ -171,8 +171,8 @@ fn parse_distribute_args(matches: &ArgMatches<'_>) -> DistributeArgs<String> {
     }
 }
 
-fn parse_distribute_stake_args(matches: &ArgMatches<'_>) -> DistributeStakeArgs<String, String> {
-    DistributeStakeArgs {
+fn parse_stake_accounts_args(matches: &ArgMatches<'_>) -> StakeAccountsArgs<String, String> {
+    StakeAccountsArgs {
         allocations_csv: value_t_or_exit!(matches, "allocations_csv", String),
         transactions_csv: value_t_or_exit!(matches, "transactions_csv", String),
         dry_run: matches.is_present("dry_run"),
@@ -200,9 +200,9 @@ where
     let url = matches.value_of("url").map(|x| x.to_string());
 
     let command = match matches.subcommand() {
-        ("distribute", Some(matches)) => Command::Distribute(parse_distribute_args(matches)),
-        ("distribute-stake", Some(matches)) => {
-            Command::DistributeStake(parse_distribute_stake_args(matches))
+        ("auction", Some(matches)) => Command::Auction(parse_auction_args(matches)),
+        ("stake-accounts", Some(matches)) => {
+            Command::StakeAccounts(parse_stake_accounts_args(matches))
         }
         ("balances", Some(matches)) => Command::Balances(parse_balances_args(matches)),
         _ => {

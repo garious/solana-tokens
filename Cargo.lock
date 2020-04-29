@@ -3225,6 +3225,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "solana-reconcile"
+version = "0.1.1"
+dependencies = [
+ "clap",
+ "console 0.10.3",
+ "csv",
+ "indexmap",
+ "serde",
+ "solana-clap-utils",
+ "solana-cli-config",
+ "solana-client",
+ "solana-core",
+ "solana-remote-wallet",
+ "solana-runtime",
+ "solana-sdk",
+ "solana-stake-program",
+ "tempfile",
+]
+
+[[package]]
 name = "solana-remote-wallet"
 version = "1.2.0"
 source = "git+https://github.com/solana-labs/solana?rev=efb4988d108fa2f52c35d671a177d3b18db6c495#efb4988d108fa2f52c35d671a177d3b18db6c495"
@@ -3386,26 +3406,6 @@ dependencies = [
  "sysctl",
  "unix_socket2",
  "users",
-]
-
-[[package]]
-name = "solana-tokens"
-version = "0.1.1"
-dependencies = [
- "clap",
- "console 0.10.3",
- "csv",
- "indexmap",
- "serde",
- "solana-clap-utils",
- "solana-cli-config",
- "solana-client",
- "solana-core",
- "solana-remote-wallet",
- "solana-runtime",
- "solana-sdk",
- "solana-stake-program",
- "tempfile",
 ]
 
 [[package]]

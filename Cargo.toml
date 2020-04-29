@@ -1,5 +1,5 @@
 [package]
-name = "solana-tokens"
+name = "solana-reconcile"
 description = "Blockchain, Rebuilt for Scale"
 authors = ["Solana Maintainers <maintainers@solana.com>"]
 edition = "2018"

@@ -1,4 +1,4 @@
-use crate::args::{BalancesArgs, DistributeArgs, DistributeStakeArgs};
+use crate::args::{AuctionArgs, BalancesArgs, StakeAccountsArgs};
 use crate::thin_client::{Client, ThinClient};
 use console::style;
 use csv::{ReaderBuilder, Trim};
@@ -81,10 +81,10 @@ fn create_allocation(bid: &Bid, dollars_per_sol: f64) -> Allocation {
     }
 }
 
-fn distribute_tokens<T: Client>(
+fn reconcile_auction<T: Client>(
     client: &ThinClient<T>,
     allocations: &[Allocation],
-    args: &DistributeArgs<Box<dyn Signer>>,
+    args: &AuctionArgs<Box<dyn Signer>>,
 ) -> Result<(), csv::Error> {
     let signers = if args.dry_run {
         vec![]
@@ -124,10 +124,10 @@ fn distribute_tokens<T: Client>(
     Ok(())
 }
 
-fn distribute_stake<T: Client>(
+fn reconcile_stake_accounts<T: Client>(
     client: &ThinClient<T>,
     allocations: &[Allocation],
-    args: &DistributeStakeArgs<Pubkey, Box<dyn Signer>>,
+    args: &StakeAccountsArgs<Pubkey, Box<dyn Signer>>,
 ) -> Result<(), csv::Error> {
     let new_stake_account_keypair = Keypair::new();
     let new_stake_account_address = new_stake_account_keypair.pubkey();
@@ -243,9 +243,9 @@ fn append_transaction_info(
     Ok(())
 }
 
-pub fn process_distribute<T: Client>(
+pub fn process_auction<T: Client>(
     client: &ThinClient<T>,
-    args: &DistributeArgs<Box<dyn Signer>>,
+    args: &AuctionArgs<Box<dyn Signer>>,
 ) -> Result<(), csv::Error> {
     let mut rdr = ReaderBuilder::new()
         .trim(Trim::All)
@@ -328,14 +328,14 @@ pub fn process_distribute<T: Client>(
         (distributed_tokens + undistributed_tokens) * args.dollars_per_sol,
     );
 
-    distribute_tokens(client, &allocations, args)?;
+    reconcile_auction(client, &allocations, args)?;
 
     Ok(())
 }
 
-pub fn process_distribute_stake<T: Client>(
+pub fn process_stake_accounts<T: Client>(
     client: &ThinClient<T>,
-    args: &DistributeStakeArgs<Pubkey, Box<dyn Signer>>,
+    args: &StakeAccountsArgs<Pubkey, Box<dyn Signer>>,
 ) -> Result<(), csv::Error> {
     let mut rdr = ReaderBuilder::new()
         .trim(Trim::All)
@@ -359,7 +359,7 @@ pub fn process_distribute_stake<T: Client>(
         return Ok(());
     }
 
-    distribute_stake(client, &allocations, args)?;
+    reconcile_stake_accounts(client, &allocations, args)?;
 
     Ok(())
 }
@@ -405,7 +405,7 @@ pub fn process_balances<T: Client>(
 
 use solana_sdk::{pubkey::Pubkey, signature::Keypair};
 use tempfile::{tempdir, NamedTempFile};
-pub fn test_process_distribute_with_client<C: Client>(client: C, sender_keypair: Keypair) {
+pub fn test_process_auction_with_client<C: Client>(client: C, sender_keypair: Keypair) {
     let thin_client = ThinClient(client);
     let fee_payer = Keypair::new();
     thin_client
@@ -431,7 +431,7 @@ pub fn test_process_distribute_with_client<C: Client>(client: C, sender_keypair:
         .unwrap()
         .to_string();
 
-    let args: DistributeArgs<Box<dyn Signer>> = DistributeArgs {
+    let args: AuctionArgs<Box<dyn Signer>> = AuctionArgs {
         sender_keypair: Some(Box::new(sender_keypair)),
         fee_payer: Some(Box::new(fee_payer)),
         dry_run: false,
@@ -439,7 +439,7 @@ pub fn test_process_distribute_with_client<C: Client>(client: C, sender_keypair:
         transactions_csv: transactions_csv.clone(),
         dollars_per_sol: 0.22,
     };
-    process_distribute(&thin_client, &args).unwrap();
+    process_auction(&thin_client, &args).unwrap();
     let transaction_infos = read_transaction_infos(&transactions_csv);
     assert_eq!(transaction_infos.len(), 1);
     assert_eq!(transaction_infos[0].recipient, alice_pubkey.to_string());
@@ -452,7 +452,7 @@ pub fn test_process_distribute_with_client<C: Client>(client: C, sender_keypair:
     );
 
     // Now, run it again, and check there's no double-spend.
-    process_distribute(&thin_client, &args).unwrap();
+    process_auction(&thin_client, &args).unwrap();
     let transaction_infos = read_transaction_infos(&transactions_csv);
     assert_eq!(transaction_infos.len(), 1);
     assert_eq!(transaction_infos[0].recipient, alice_pubkey.to_string());
@@ -465,7 +465,7 @@ pub fn test_process_distribute_with_client<C: Client>(client: C, sender_keypair:
     );
 }
 
-pub fn test_process_distribute_stake_with_client<C: Client>(client: C, sender_keypair: Keypair) {
+pub fn test_process_stake_accounts_with_client<C: Client>(client: C, sender_keypair: Keypair) {
     let thin_client = ThinClient(client);
     let fee_payer = Keypair::new();
     thin_client
@@ -513,7 +513,7 @@ pub fn test_process_distribute_stake_with_client<C: Client>(client: C, sender_ke
         .unwrap()
         .to_string();
 
-    let args: DistributeStakeArgs<Pubkey, Box<dyn Signer>> = DistributeStakeArgs {
+    let args: StakeAccountsArgs<Pubkey, Box<dyn Signer>> = StakeAccountsArgs {
         stake_account_address,
         stake_authority: Some(Box::new(stake_authority)),
         withdraw_authority: Some(Box::new(withdraw_authority)),
@@ -522,7 +522,7 @@ pub fn test_process_distribute_stake_with_client<C: Client>(client: C, sender_ke
         allocations_csv,
         transactions_csv: transactions_csv.clone(),
     };
-    process_distribute_stake(&thin_client, &args).unwrap();
+    process_stake_accounts(&thin_client, &args).unwrap();
     let transaction_infos = read_transaction_infos(&transactions_csv);
     assert_eq!(transaction_infos.len(), 1);
     assert_eq!(transaction_infos[0].recipient, alice_pubkey.to_string());
@@ -543,7 +543,7 @@ pub fn test_process_distribute_stake_with_client<C: Client>(client: C, sender_ke
     );
 
     // Now, run it again, and check there's no double-spend.
-    process_distribute_stake(&thin_client, &args).unwrap();
+    process_stake_accounts(&thin_client, &args).unwrap();
     let transaction_infos = read_transaction_infos(&transactions_csv);
     assert_eq!(transaction_infos.len(), 1);
     assert_eq!(transaction_infos[0].recipient, alice_pubkey.to_string());
@@ -567,19 +567,19 @@ mod tests {
     use solana_sdk::genesis_config::create_genesis_config;
 
     #[test]
-    fn test_process_distribute() {
+    fn test_process_auction() {
         let (genesis_config, sender_keypair) = create_genesis_config(sol_to_lamports(9_000_000.0));
         let bank = Bank::new(&genesis_config);
         let bank_client = BankClient::new(bank);
-        test_process_distribute_with_client(bank_client, sender_keypair);
+        test_process_auction_with_client(bank_client, sender_keypair);
     }
 
     #[test]
-    fn test_process_distribute_stake() {
+    fn test_process_stake_accounts() {
         let (genesis_config, sender_keypair) = create_genesis_config(sol_to_lamports(9_000_000.0));
         let bank = Bank::new(&genesis_config);
         let bank_client = BankClient::new(bank);
-        test_process_distribute_stake_with_client(bank_client, sender_keypair);
+        test_process_stake_accounts_with_client(bank_client, sender_keypair);
     }
 
     #[test]
